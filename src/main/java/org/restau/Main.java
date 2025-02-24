@@ -14,10 +14,13 @@ public class Main {
         IngredientDAO ingredientDAO = new IngredientDAO(new DbConnection());
         DishDAO dishDAO = new DishDAO(new DbConnection());
 
-        /*List<Dish> result = dishDAO.getAllPaginated(1, 10);
-        System.out.println(result);*/
+        List<Dish> result = dishDAO.getAllPaginated(1, 10);
+        System.out.println(result);
 
-        Optional<Ingredient> ingredient = ingredientDAO.findById(1L);
-        System.out.println(ingredient.get());
+       /* Optional<Ingredient> ingredient = ingredientDAO.findById(1L);
+        System.out.println(ingredient.get());*/
+
+        /*boolean result = ingredientDAO.delete(5L);
+        System.out.println(result);*/
     }
 }

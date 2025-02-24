@@ -18,6 +18,12 @@ public class Dish {
     private Double unitPrice;
     private List<DishIngredient> dishIngredients;
 
+    public Dish(String name, Double unitPrice, List<DishIngredient> dishIngredients) {
+        this.name = name;
+        this.unitPrice = unitPrice;
+        this.dishIngredients = dishIngredients;
+    }
+
     public Dish(Long idDish, String name, Double unitPrice) {
         this.idDish = idDish;
         this.name = name;

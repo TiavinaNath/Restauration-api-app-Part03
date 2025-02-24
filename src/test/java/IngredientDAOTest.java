@@ -60,7 +60,7 @@ public class IngredientDAOTest {
 
         List<Ingredient> result = subject.findByCriteria(criterias, "update_datetime", true, 1, 10);
 
-        assertEquals(5, result.size());
+        assertEquals(4, result.size());
     }
 
     @Test
@@ -81,7 +81,7 @@ public class IngredientDAOTest {
 
         List<Ingredient> result = subject.findByCriteria(criterias, "update_datetime", true, 1, 10);
 
-        assertEquals(5, result.size());
+        assertEquals(4, result.size());
     }
 
     @Test

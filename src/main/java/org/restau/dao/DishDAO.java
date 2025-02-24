@@ -159,6 +159,31 @@ public class DishDAO implements CrudDAO<Dish> {
         return false;
     }
 
+    public boolean update(Dish dish) {
+        String sql = """
+        UPDATE dish 
+        SET name = ?, unit_price = ? 
+        WHERE id_dish = ?
+    """;
+
+        try (Connection con = dbConnection.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
+
+            pstmt.setString(1, dish.getName());
+            pstmt.setDouble(2, dish.getUnitPrice());
+            pstmt.setLong(3, dish.getIdDish());
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0; // Retourne true si la mise à jour a été effectuée
+
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return false; // Retourne false si une erreur survient
+    }
+
+
+
 
     public Integer getIngredientCost(Long idDish, LocalDate date) {
         String sql = """
@@ -191,6 +216,41 @@ public class DishDAO implements CrudDAO<Dish> {
         }
 
         return 0;
+    }
+
+    public Double getGrossMargin(Long idDish, LocalDate date) throws SQLException {
+        // Si aucune date n'est fournie, utiliser la date du jour
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        // Requête SQL pour récupérer le prix de vente du plat
+        String sqlDishPrice = "SELECT unit_price FROM Dish WHERE id_dish = ?";
+
+        Double unitPrice = null;
+        try (Connection con = dbConnection.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sqlDishPrice)) {
+
+            pstmt.setLong(1, idDish);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    unitPrice = rs.getDouble("unit_price");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Vérifier si le plat existe
+        if (unitPrice == null) {
+            throw new IllegalArgumentException("Plat non trouvé pour l'ID : " + idDish);
+        }
+
+        // Récupérer le coût total des ingrédients à la date donnée
+        Integer ingredientCost = getIngredientCost(idDish, date);
+
+        // Calculer la marge brute (prix de vente - coût des ingrédients)
+        return unitPrice - ingredientCost;
     }
 
     public static Dish mapDish(ResultSet rs) throws SQLException {

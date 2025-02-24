@@ -6,7 +6,7 @@ CREATE TYPE unit AS ENUM ('G', 'L', 'U');
 
 CREATE TABLE Dish (
         id_dish SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        name VARCHAR(255) UNIQUE NOT NULL,
         unit_price NUMERIC(10,2) NOT NULL
 );
 
