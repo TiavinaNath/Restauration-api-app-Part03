@@ -2,6 +2,7 @@ package org.restau.entity;
 
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,4 +40,18 @@ public class Dish {
                 "  unitPrice=" + unitPrice + ",\n" +
                 "  dishIngredients=\n" + dishIngredients + "\n}";
     }
+
+    public Double getIngredientCost() {
+        return dishIngredients.stream()
+                .mapToDouble(e ->
+                        (e.getPrice().getUnitPrice() != null ? e.getPrice().getUnitPrice() : 0.0)
+                                * e.getRequiredQuantity().doubleValue()
+                )
+                .sum();
+    }
+
+    public Double getGrossMargin() {
+        return unitPrice - getIngredientCost();
+    }
+
 }

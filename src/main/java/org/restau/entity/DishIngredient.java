@@ -12,15 +12,17 @@ import java.math.BigDecimal;
 
 public class DishIngredient {
     private Ingredient ingredient;
+    private Price price;
     private BigDecimal requiredQuantity;
     private Unit unit;
 
     @Override
     public String toString() {
-        return "    DishIngredient {\n" +
-                "      ingredient=" + ingredient.getName() + ",\n" +
-                "      requiredQuantity=" + requiredQuantity + ",\n" +
-                "      unit=" + unit + "\n" +
-                "    }";
+        return "DishIngredient{" +
+                "ingredient=" + ingredient +
+                ", price=" + price +
+                ", requiredQuantity=" + requiredQuantity +
+                ", unit=" + unit +
+                '}';
     }
 }

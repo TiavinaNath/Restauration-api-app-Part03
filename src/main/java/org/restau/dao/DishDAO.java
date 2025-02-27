@@ -2,203 +2,273 @@ package org.restau.dao;
 
 import lombok.AllArgsConstructor;
 import org.restau.db.DbConnection;
-import org.restau.entity.Dish;
-import org.restau.entity.DishIngredient;
-import org.restau.entity.Ingredient;
-import org.restau.entity.Unit;
+import org.restau.entity.*;
 
 import java.sql.*;
-import java.sql.Date;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @AllArgsConstructor
 
-public class DishDAO implements CrudDAO<Dish> {
+public class DishDAO {
     private DbConnection dbConnection;
 
     public DishDAO() {
         this.dbConnection = new DbConnection();
     }
 
+/*
+    public Optional<Dish> findById(Long idDish) {
+        String sql = "SELECT d.id_dish, d.name, d.unit_price FROM Dish d WHERE d.id_dish = ?";
 
-    @Override
-    public List<Dish> getAllPaginated(int page, int size) {
-        Map<Long, Dish> dishMap = new HashMap<>();
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-        String sql = """
-            SELECT d.id_dish, d.name, d.unit_price,
-                   i.id_ingredient, i.name AS ingredient_name, i.update_datetime,
-                   di.required_quantity, di.unit
-            FROM dish d
-            LEFT JOIN dish_ingredient di ON d.id_dish = di.id_dish
-            LEFT JOIN ingredient i ON di.id_ingredient = i.id_ingredient
-            LIMIT ? OFFSET ?
-        """;
+            stmt.setLong(1, idDish);
+            ResultSet rs = stmt.executeQuery();
 
-        try (Connection con = dbConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-
-            pstmt.setInt(1, size);
-            pstmt.setInt(2, (page-1) * size);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    Long dishId = rs.getLong("id_dish");
-
-                    // Vérifie si le plat est déjà dans la map
-                    Dish dish = dishMap.computeIfAbsent(dishId, k -> {
-                        try {
-                            return mapDish(rs);
-                        } catch (SQLException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
-                    // Si un ingrédient est associé, on l'ajoute
-                    if (rs.getObject("id_ingredient") != null) {
-                        DishIngredient dishIngredient = mapDishIngredient(rs);
-                        dish.getDishIngredients().add(dishIngredient);
-                    }
-                }
+            if (rs.next()) {
+                Dish dish = new Dish();
+                dish.setIdDish(rs.getLong("id_dish"));
+                dish.setName(rs.getString("name"));
+                dish.setUnitPrice(rs.getDouble("unit_price"));
+                dish.setDishIngredients(getDishIngredients(idDish, conn)); // Récupérer les ingrédients
+                return Optional.of(dish);
             }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
 
-        return new ArrayList<>(dishMap.values());
+        return Optional.empty();
     }
 
-    @Override
-    public Optional<Dish> findById(Long id) {
-        Dish dish = null;
-
+    public Optional<Dish> findByIdWithDate(Long idDish, LocalDate date) {
         String sql = """
-            SELECT d.id_dish, d.name, d.unit_price,
-                   i.id_ingredient, i.name AS ingredient_name, i.update_datetime,
-                   di.required_quantity, di.unit
-            FROM dish d
-            LEFT JOIN dish_ingredient di ON d.id_dish = di.id_dish
-            LEFT JOIN ingredient i ON di.id_ingredient = i.id_ingredient
-            WHERE d.id_dish = ?
-        """;
+            SELECT d.id_dish, d.name, d.unit_price 
+            FROM Dish d
+            WHERE d.id_dish = ?""";
+
+        try (Connection conn = dbConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, idDish);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                Dish dish = new Dish();
+                dish.setIdDish(rs.getLong("id_dish"));
+                dish.setName(rs.getString("name"));
+                dish.setUnitPrice(rs.getDouble("unit_price"));
+                dish.setDishIngredients(getDishIngredientsWithDate(idDish, date, conn)); // Filtrer les prix par date
+                return Optional.of(dish);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return Optional.empty();
+    }
+
+    private List<DishIngredient> getDishIngredients(Long idDish, Connection conn) throws SQLException {
+        String sql = """
+            SELECT di.id_ingredient, i.name, di.required_quantity, di.unit, p.id_price, p.date, p.unit_price, p.unit 
+            FROM Dish_Ingredient di
+            JOIN Ingredient i ON di.id_ingredient = i.id_ingredient
+            JOIN Price p ON di.id_price = p.id_price
+            WHERE di.id_dish = ?""";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, idDish);
+            ResultSet rs = stmt.executeQuery();
+
+            List<DishIngredient> dishIngredients = new ArrayList<>();
+            while (rs.next()) {
+                Ingredient ingredient = new Ingredient();
+                ingredient.setIdIngredient(rs.getLong("id_ingredient"));
+                ingredient.setName(rs.getString("name"));
+
+                Price price = new Price();
+                price.setIdPrice(rs.getLong("id_price"));
+                price.setDate(rs.getDate("date").toLocalDate());
+                price.setUnitPrice(rs.getDouble("unit_price"));
+                price.setUnit(Unit.valueOf(rs.getString("unit")));
+                price.setIngredient(ingredient);
+
+                DishIngredient dishIngredient = new DishIngredient();
+                dishIngredient.setIngredient(ingredient);
+                dishIngredient.setPrice(price);
+                dishIngredient.setRequiredQuantity(rs.getBigDecimal("required_quantity"));
+                dishIngredient.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                dishIngredients.add(dishIngredient);
+            }
+            return dishIngredients;
+        }
+    }
+
+    private List<DishIngredient> getDishIngredientsWithDate(Long idDish, LocalDate date, Connection conn) throws SQLException {
+        String sql = """
+            SELECT di.id_ingredient, i.name, di.required_quantity, di.unit, p.id_price, p.date, p.unit_price, p.unit 
+            FROM Dish_Ingredient di
+            JOIN Ingredient i ON di.id_ingredient = i.id_ingredient
+            JOIN Price p ON di.id_price = p.id_price
+            WHERE di.id_dish = ? AND p.date = ?""";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, idDish);
+            stmt.setDate(2, Date.valueOf(date));
+            ResultSet rs = stmt.executeQuery();
+
+            List<DishIngredient> dishIngredients = new ArrayList<>();
+            while (rs.next()) {
+                Ingredient ingredient = new Ingredient();
+                ingredient.setIdIngredient(rs.getLong("id_ingredient"));
+                ingredient.setName(rs.getString("name"));
+
+                Price price = new Price();
+                price.setIdPrice(rs.getLong("id_price"));
+                price.setDate(rs.getDate("date").toLocalDate());
+                price.setUnitPrice(rs.getDouble("unit_price"));
+                price.setUnit(Unit.valueOf(rs.getString("unit")));
+                price.setIngredient(ingredient);
+
+                DishIngredient dishIngredient = new DishIngredient();
+                dishIngredient.setIngredient(ingredient);
+                dishIngredient.setPrice(price);
+                dishIngredient.setRequiredQuantity(rs.getBigDecimal("required_quantity"));
+                dishIngredient.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                dishIngredients.add(dishIngredient);
+            }
+            return dishIngredients;
+        }
+    }*/
+
+    public Optional<Dish> findById(Long id) {
+        String sql = "select * from dish where id_dish = ?";
+        Dish dish = new Dish();
 
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             pstmt.setLong(1, id);
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    if (dish == null) {
-                        dish = mapDish(rs);
-                    }
-
-                    // Ajout des ingrédients associés
-                    if (rs.getObject("id_ingredient") != null) {
-                        DishIngredient dishIngredient = mapDishIngredient(rs);
-                        dish.getDishIngredients().add(dishIngredient);
-                    }
-                }
-            }
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-        }
-
-        return Optional.ofNullable(dish);
-    }
-
-    @Override
-    public Dish save(Dish dish) {
-        String sql = """
-            INSERT INTO dish (name, unit_price) 
-            VALUES (?, ?)
-            ON CONFLICT (name) 
-            DO UPDATE SET unit_price = EXCLUDED.unit_price
-            RETURNING id_dish
-        """;
-
-        try (Connection con = dbConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
-
-            pstmt.setString(1, dish.getName());
-            pstmt.setDouble(2, dish.getUnitPrice());
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     dish.setIdDish(rs.getLong("id_dish"));
+                    dish.setName(rs.getString("name"));
+                    dish.setUnitPrice(rs.getDouble("unit_price"));
+                    dish.setDishIngredients(getDishIngredientOfDish(id));
                 }
             }
-        } catch (SQLException ex) {
+
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
         }
-        return dish;
+
+        return Optional.of(dish);
     }
 
-    @Override
-    public List<Dish> saveAll(List<Dish> dishes) {
-        List<Dish> savedDishes = new ArrayList<>();
-        for (Dish dish : dishes) {
-            save(dish);
-        }
-        return savedDishes;
-    }
-
-    @Override
-    public boolean delete(Long id) {
-        String sql = "DELETE FROM dish WHERE id_dish = ?";
+    public Optional<Dish> findById(Long id, LocalDate date) {
+        String sql = "select * from dish where id_dish = ?";
+        Dish dish = new Dish();
 
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             pstmt.setLong(1, id);
-            return pstmt.executeUpdate() > 0;
-        } catch (SQLException ex) {
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    dish.setIdDish(rs.getLong("id_dish"));
+                    dish.setName(rs.getString("name"));
+                    dish.setUnitPrice(rs.getDouble("unit_price"));
+                    dish.setDishIngredients(getDishIngredientOfDishWithDate(id, date));
+                }
+            }
+
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
         }
-        return false;
+
+        return Optional.of(dish);
     }
 
-    public boolean update(Dish dish) {
+    public List<DishIngredient> getDishIngredientOfDish (Long idDish) {
         String sql = """
-        UPDATE dish 
-        SET name = ?, unit_price = ? 
-        WHERE id_dish = ?
-    """;
+                select i.id_ingredient, i.name, i.update_datetime, p.id_price, p.date, p.unit_price, p.unit, di.required_quantity from ingredient i
+                join price p on i.id_ingredient = p.id_ingredient
+                join dish_ingredient di on di.id_ingredient = i.id_ingredient
+                join dish d on d.id_dish = di.id_dish
+                where d.id_dish = ?
+                """;
+
+        List<DishIngredient> dishIngredients = new ArrayList<>();
 
         try (Connection con = dbConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sql)) {
+            PreparedStatement pstmt = con.prepareStatement(sql)) {
 
-            pstmt.setString(1, dish.getName());
-            pstmt.setDouble(2, dish.getUnitPrice());
-            pstmt.setLong(3, dish.getIdDish());
+            pstmt.setLong(1, idDish);
 
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0; // Retourne true si la mise à jour a été effectuée
+            try (ResultSet rs = pstmt.executeQuery())  {
+                while (rs.next()) {
+                    /*Ingredient ingredient = ingredientMapper(rs);
+                    Price price = priceMapper(rs, ingredient);*/
 
-        } catch (SQLException ex) {
+                    Ingredient ingredient = new Ingredient();
+                    ingredient.setIdIngredient(rs.getLong("id_ingredient"));
+                    ingredient.setName(rs.getString("name"));
+                    ingredient.setUpdateDatetime(rs.getTimestamp("update_datetime").toLocalDateTime());
+
+                    Price price = new Price();
+                    price.setIdPrice(rs.getLong("id_price"));
+                    price.setIngredient(ingredient);
+                    price.setDate(rs.getDate("date").toLocalDate());
+                    price.setUnitPrice(rs.getDouble("unit_price"));
+                    price.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                    DishIngredient dishIngredientToAdd = new DishIngredient();
+                    dishIngredientToAdd.setIngredient(ingredient);
+                    dishIngredientToAdd.setPrice(price);
+                    dishIngredientToAdd.setRequiredQuantity(rs.getBigDecimal("required_quantity"));
+                    dishIngredientToAdd.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                    dishIngredients.add(dishIngredientToAdd);
+                }
+            }
+
+        }
+        catch (Exception ex) {
             ex.printStackTrace();
         }
-        return false; // Retourne false si une erreur survient
+
+        return dishIngredients;
     }
 
-
-
-
-    public Integer getIngredientCost(Long idDish, LocalDate date) {
+    public List<DishIngredient> getDishIngredientOfDishWithDate (Long idDish, LocalDate date) {
         String sql = """
-        SELECT SUM(di.required_quantity * p.unit_price) AS total_cost
-        FROM Dish_Ingredient di
-        JOIN Price p ON di.id_ingredient = p.id_ingredient
-        WHERE di.id_dish = ? 
-          AND p.date = (
-              SELECT MAX(date)
-              FROM Price 
-              WHERE id_ingredient = di.id_ingredient 
-                AND date <= ?
-          )
-        GROUP BY di.id_dish;
-    """;
+                select i.id_ingredient, i.name, i.update_datetime, p.id_price, p.date, p.unit_price, p.unit, di.required_quantity from ingredient i
+                join price p on i.id_ingredient = p.id_ingredient
+                join dish_ingredient di on di.id_ingredient = i.id_ingredient
+                join dish d on d.id_dish = di.id_dish
+                where d.id_dish = ?
+                and p.id_price = (
+                    select p2.id_price from price p2
+                    where di.id_ingredient = p2.id_ingredient
+                    and p2.date <= ?
+                    order by date desc
+                    limit 1   
+                )
+                order by di.id_ingredient
+                """;
+
+        List<DishIngredient> dishIngredients = new ArrayList<>();
 
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
@@ -206,74 +276,73 @@ public class DishDAO implements CrudDAO<Dish> {
             pstmt.setLong(1, idDish);
             pstmt.setDate(2, Date.valueOf(date));
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return (int) Math.round(rs.getDouble("total_cost"));
+            try (ResultSet rs = pstmt.executeQuery())  {
+                while (rs.next()) {
+                    /*Ingredient ingredient = ingredientMapper(rs);
+                    Price price = priceMapper(rs, ingredient);*/
+
+                    Ingredient ingredient = new Ingredient();
+                    ingredient.setIdIngredient(rs.getLong("id_ingredient"));
+                    ingredient.setName(rs.getString("name"));
+                    ingredient.setUpdateDatetime(rs.getTimestamp("update_datetime").toLocalDateTime());
+
+                    Price price = new Price();
+                    price.setIdPrice(rs.getLong("id_price"));
+                    price.setIngredient(ingredient);
+                    price.setDate(rs.getDate("date").toLocalDate());
+                    price.setUnitPrice(rs.getDouble("unit_price"));
+                    price.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                    DishIngredient dishIngredientToAdd = new DishIngredient();
+                    dishIngredientToAdd.setIngredient(ingredient);
+                    dishIngredientToAdd.setPrice(price);
+                    dishIngredientToAdd.setRequiredQuantity(rs.getBigDecimal("required_quantity"));
+                    dishIngredientToAdd.setUnit(Unit.valueOf(rs.getString("unit")));
+
+                    dishIngredients.add(dishIngredientToAdd);
                 }
             }
-        } catch (SQLException e) {
-            e.printStackTrace();
+
+        }
+        catch (Exception ex) {
+            ex.printStackTrace();
         }
 
-        return 0;
+        return dishIngredients;
     }
 
-    public Double getGrossMargin(Long idDish, LocalDate date) throws SQLException {
-        // Si aucune date n'est fournie, utiliser la date du jour
-        if (date == null) {
-            date = LocalDate.now();
-        }
 
-        // Requête SQL pour récupérer le prix de vente du plat
-        String sqlDishPrice = "SELECT unit_price FROM Dish WHERE id_dish = ?";
 
-        Double unitPrice = null;
-        try (Connection con = dbConnection.getConnection();
-             PreparedStatement pstmt = con.prepareStatement(sqlDishPrice)) {
 
-            pstmt.setLong(1, idDish);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    unitPrice = rs.getDouble("unit_price");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+/*
+    public static Dish dishMapper(ResultSet rs) throws SQLException {
+        Dish dish = new Dish();
+        dish.setIdDish(rs.getLong("id_dish"));
+        dish.setName(rs.getString("name"));
+        dish.setUnitPrice(rs.getDouble("unit_price"));
+        dish.setDishIngredients(new ArrayList<>());
 
-        // Vérifier si le plat existe
-        if (unitPrice == null) {
-            throw new IllegalArgumentException("Plat non trouvé pour l'ID : " + idDish);
-        }
-
-        // Récupérer le coût total des ingrédients à la date donnée
-        Integer ingredientCost = getIngredientCost(idDish, date);
-
-        // Calculer la marge brute (prix de vente - coût des ingrédients)
-        return unitPrice - ingredientCost;
+        return dish;
     }
 
-    public static Dish mapDish(ResultSet rs) throws SQLException {
-        return new Dish(
-                rs.getLong("id_dish"),
-                rs.getString("name"),
-                rs.getDouble("unit_price"),
-                new ArrayList<>()
-        );
+
+    public Ingredient ingredientMapper(ResultSet rs) throws SQLException {
+        Ingredient ingredient = new Ingredient();
+        ingredient.setIdIngredient(rs.getLong("id_ingredient"));
+        ingredient.setName(rs.getString("name"));
+        ingredient.setUpdateDatetime(rs.getTimestamp("update_datetime").toLocalDateTime());
+
+        return ingredient;
     }
 
-    public static DishIngredient mapDishIngredient(ResultSet rs) throws SQLException {
-        Ingredient ingredient = new Ingredient(
-                rs.getLong("id_ingredient"),
-                rs.getString("ingredient_name"),
-                rs.getTimestamp("update_datetime").toLocalDateTime()
-        );
+    public Price priceMapper (ResultSet rs, Ingredient ingredient) throws SQLException {
+        Price price = new Price();
+        price.setIdPrice(rs.getLong("id_price"));
+        price.setIngredient(ingredient);
+        price.setDate(rs.getDate("date").toLocalDate());
+        price.setUnitPrice(rs.getDouble("unit_price"));
+        price.setUnit(Unit.valueOf(rs.getString("unit")));
 
-        return new DishIngredient(
-                ingredient,
-                rs.getBigDecimal("required_quantity"),
-                Unit.valueOf(rs.getString("unit"))
-        );
-    }
-
+        return price;
+    }*/
 }

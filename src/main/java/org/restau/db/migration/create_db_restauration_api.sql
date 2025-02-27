@@ -1,6 +1,6 @@
-CREATE DATABASE restauration_api;
+CREATE DATABASE restauration_api3;
 
-\c restauration_api;
+\c restauration_api3;
 
 CREATE TYPE unit AS ENUM ('G', 'L', 'U');
 
@@ -29,11 +29,13 @@ CREATE TABLE Price (
 CREATE TABLE Dish_Ingredient (
         id_dish INT NOT NULL,
         id_ingredient INT NOT NULL,
+        id_price INT NOT NULL,
         required_quantity NUMERIC(10,3) NOT NULL,
         unit unit NOT NULL,
         PRIMARY KEY (id_dish, id_ingredient),
         FOREIGN KEY (id_dish) REFERENCES Dish(id_dish) ON DELETE CASCADE,
-        FOREIGN KEY (id_ingredient) REFERENCES Ingredient(id_ingredient) ON DELETE CASCADE
+        FOREIGN KEY (id_ingredient) REFERENCES Ingredient(id_ingredient) ON DELETE CASCADE,
+        FOREIGN KEY (id_price) REFERENCES Price(id_price) ON DELETE CASCADE
 );
 
 CREATE FUNCTION update_timestamp()
