@@ -1,8 +1,9 @@
-CREATE DATABASE restauration_api3;
+CREATE DATABASE restauration_api4;
 
-\c restauration_api3;
+\c restauration_api4;
 
 CREATE TYPE unit AS ENUM ('G', 'L', 'U');
+CREATE TYPE movement AS ENUM ('IN', 'OUT');
 
 CREATE TABLE Dish (
         id_dish SERIAL PRIMARY KEY,
@@ -37,6 +38,17 @@ CREATE TABLE Dish_Ingredient (
         FOREIGN KEY (id_ingredient) REFERENCES Ingredient(id_ingredient) ON DELETE CASCADE,
         FOREIGN KEY (id_price) REFERENCES Price(id_price) ON DELETE CASCADE
 );
+
+CREATE TABLE Stock_Movement (
+        id_stock_movement SERIAL PRIMARY KEY,
+        id_ingredient INT NOT NULL,
+        movement movement NOT NULL,
+        quantity NUMERIC(10,3) NOT NULL,
+        unit unit NOT NULL,
+        movement_datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (id_ingredient) REFERENCES Ingredient(id_ingredient) ON DELETE CASCADE
+);
+
 
 CREATE FUNCTION update_timestamp()
     RETURNS TRIGGER AS $$

@@ -6,9 +6,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DishTest {
+public class DishTestStaticDataSource {
     @Test
-    void get_ingredient_cost () {
+    void getIngredientCost() {
 
         List<Dish> dishes = StaticDataSource.getDishes();
         Dish subject = dishes.get(0);

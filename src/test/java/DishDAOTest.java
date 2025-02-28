@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class DishDAOTest {
-    DishDAO subject = new DishDAO(new DbConnection());
+    DishDAO subject = new DishDAO();
 
     @Test
     void testFindById() {
