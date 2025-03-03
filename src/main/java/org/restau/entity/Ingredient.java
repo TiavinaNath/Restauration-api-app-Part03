@@ -47,7 +47,7 @@ public class Ingredient {
 
     public BigDecimal getAvailableStock() {
         return stockMovements.stream()
-                .map(e -> e.getMovement() == Movement.IN? e.getQuantity() : e.getQuantity().negate())
+                .map(e -> e.getMovement() == Movement.IN ? e.getQuantity() : e.getQuantity().negate())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 

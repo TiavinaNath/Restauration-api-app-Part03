@@ -14,9 +14,11 @@ import java.util.Optional;
 
 public class DishDAO {
     private DbConnection dbConnection;
+    private StockMovementDAO stockMovementDAO;
 
     public DishDAO() {
         this.dbConnection = new DbConnection();
+        this.stockMovementDAO = new StockMovementDAO();
     }
 
 /*
@@ -225,6 +227,7 @@ public class DishDAO {
                     ingredient.setIdIngredient(rs.getLong("id_ingredient"));
                     ingredient.setName(rs.getString("name"));
                     ingredient.setUpdateDatetime(rs.getTimestamp("update_datetime").toLocalDateTime());
+                    ingredient.setStockMovements(stockMovementDAO.findStockMovementByIdIngredient(rs.getLong("id_ingredient")));
 
                     Price price = new Price();
                     price.setIdPrice(rs.getLong("id_price"));
@@ -285,6 +288,7 @@ public class DishDAO {
                     ingredient.setIdIngredient(rs.getLong("id_ingredient"));
                     ingredient.setName(rs.getString("name"));
                     ingredient.setUpdateDatetime(rs.getTimestamp("update_datetime").toLocalDateTime());
+                    ingredient.setStockMovements(stockMovementDAO.findStockMovementByIdIngredient(rs.getLong("id_ingredient")));
 
                     Price price = new Price();
                     price.setIdPrice(rs.getLong("id_price"));

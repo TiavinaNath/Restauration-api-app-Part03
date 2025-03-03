@@ -45,7 +45,6 @@ public class DishDAOTest {
             assertEquals(expectedDish.getDishIngredients().get(i).getIngredient().getName(), result.get().getDishIngredients().get(i).getIngredient().getName());
             assertEquals(expectedDish.getDishIngredients().get(i).getUnit(), result.get().getDishIngredients().get(i).getUnit());
         }
-
     }
 
     @Test
@@ -61,13 +60,24 @@ public class DishDAOTest {
 
     @Test
     void testGrossMargin() throws SQLException {
-        Dish dishSubject = subject.findById(1L).get();
+        Dish dishSubject = subject.findById(1L).orElseThrow();
         Double expectedMargin = 9500.0;
 
         Double result = dishSubject.getGrossMargin();
 
         assertNotNull(result, "Le résultat ne doit pas etre nul");
         assertEquals(expectedMargin, result, "Le prix retourné doit être égal à 5500");
+    }
+
+    @Test
+    void testGetAvailableQuantity() throws SQLException {
+        Dish dishSubject = subject.findById(1L).get();
+        int expectedQuantity = 30;
+
+        int result = dishSubject.getAvailableQuantity();
+
+        assertNotNull(result, "Le résultat ne doit pas etre nul");
+        assertEquals(expectedQuantity, result, "Le nombres retourné doit être égal à 30");
     }
 
 }
