@@ -63,4 +63,12 @@ public class Dish {
                 .orElse(BigDecimal.ZERO)
                 .intValue();
     }
+
+    public int getAvailableQuantityAt(LocalDate date ) {
+        return dishIngredients.stream()
+                .map(di -> di.getIngredient().getAvailableStock(date).divide(di.getRequiredQuantity(), RoundingMode.FLOOR))
+                .min(BigDecimal::compareTo)
+                .orElse(BigDecimal.ZERO)
+                .intValue();
+    }
 }

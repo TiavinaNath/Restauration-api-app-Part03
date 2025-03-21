@@ -50,6 +50,55 @@ CREATE TABLE Stock_Movement (
 );
 
 
+CREATE TYPE status_order AS ENUM ('CREATED', 'CONFIRMED', 'IN_PREPARATION', 'COMPLETED', 'SERVED');
+CREATE TYPE status_dish_order AS ENUM ('CREATED', 'CONFIRMED', 'IN_PREPARATION', 'COMPLETED', 'SERVED');
+
+-- Table Order
+CREATE TABLE "order" (
+    id_order SERIAL PRIMARY KEY,
+    reference VARCHAR(50) UNIQUE NOT NULL,
+    creation_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Table OrderStatusHistory
+CREATE TABLE order_status_history (
+    id_order_status SERIAL PRIMARY KEY,
+    id_order INT NOT NULL,
+    status status_order NOT NULL,
+    creation_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    FOREIGN KEY (id_order) REFERENCES "order" (id_order) ON DELETE CASCADE
+);
+
+-- Table DishOrder
+CREATE TABLE dish_order (
+   id_dish_order SERIAL PRIMARY KEY,
+   id_order INT NOT NULL,
+   id_dish INT NOT NULL,
+   quantity INT NOT NULL CHECK (quantity > 0),
+   FOREIGN KEY (id_order) REFERENCES "order" (id_order) ON DELETE CASCADE,
+   FOREIGN KEY (id_dish) REFERENCES dish (id_dish) ON DELETE CASCADE
+);
+
+-- Table DishOrderStatusHistory
+CREATE TABLE dish_order_status_history (
+     id_dish_order_status SERIAL PRIMARY KEY,
+     id_dish_order INT NOT NULL,
+     status status_dish_order NOT NULL,
+     creation_date_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     FOREIGN KEY (id_dish_order) REFERENCES dish_order(id_dish_order) ON DELETE CASCADE
+);
+
+
+
+
+
+
+
+
+
+
+
+
 CREATE FUNCTION update_timestamp()
     RETURNS TRIGGER AS $$
 BEGIN
