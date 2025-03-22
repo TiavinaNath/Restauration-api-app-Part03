@@ -11,12 +11,12 @@ import java.util.Optional;
 
 @AllArgsConstructor
 public class DishOrderDAO {
-    private DbConnection dbConnection;
+    private DbConnection dbconnection;
     private DishDAO dishDAO;
     private DishOrderStatusHitstoryDAO dishOrderStatusHitstoryDAO;
 
     public DishOrderDAO() {
-        this.dbConnection = new DbConnection();
+        this.dbconnection = new DbConnection();
         this.dishDAO = new DishDAO();
         this.dishOrderStatusHitstoryDAO = new DishOrderStatusHitstoryDAO();
     }
@@ -25,7 +25,7 @@ public class DishOrderDAO {
         String sql = "select * from dish_order where id_dish_order = ?";
         DishOrder dishOrder = new DishOrder();
 
-        try (Connection con = dbConnection.getConnection();
+        try (Connection con = dbconnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             pstmt.setLong(1, id);
@@ -54,7 +54,7 @@ public class DishOrderDAO {
             RETURNING id_dish_order;
         """;
 
-            try (Connection con = dbConnection.getConnection();
+            try (Connection con = dbconnection.getConnection();
                  PreparedStatement pstmt = con.prepareStatement(sql)) {
 
                 pstmt.setObject(1, dishOrder.getIdDishOrder());
@@ -82,7 +82,7 @@ public class DishOrderDAO {
             RETURNING id_dish_order;
         """;
 
-            try (Connection con = dbConnection.getConnection();
+            try (Connection con = dbconnection.getConnection();
                  PreparedStatement pstmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
                 for (DishOrder dishOrder : dishOrders) {
@@ -109,11 +109,36 @@ public class DishOrderDAO {
             return dishOrders;
         }
 
+    public void saveAll(List<DishOrder> dishOrders, Long idOrder) {
+        String sql = """
+        INSERT INTO dish_order (id_dish, quantity, id_order)
+        VALUES (?, ?, ?)
+        RETURNING id_dish_order;
+    """;
+
+        try (Connection con = dbconnection.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql)) {
+
+            for (DishOrder dishOrder : dishOrders) {
+                pstmt.setLong(1, dishOrder.getDish().getIdDish());
+                pstmt.setDouble(2, dishOrder.getQuantity());
+                pstmt.setLong(3, idOrder);
+
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public List<DishOrder> getDishOrdersByOrderId(Long orderId) {
         List<DishOrder> dishOrders = new ArrayList<>();
         String sql = "SELECT * FROM dish_order WHERE id_order = ?";
 
-        try (Connection con = dbConnection.getConnection();
+        try (Connection con = dbconnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             pstmt.setLong(1, orderId);

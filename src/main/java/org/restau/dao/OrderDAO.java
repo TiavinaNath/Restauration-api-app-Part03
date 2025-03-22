@@ -2,9 +2,12 @@ package org.restau.dao;
 
 import lombok.AllArgsConstructor;
 import org.restau.db.DbConnection;
+import org.restau.entity.DishOrder;
 import org.restau.entity.Order;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
@@ -68,4 +71,55 @@ public class OrderDAO {
         return Optional.of(order);
     }
 
+    public Order save(Order order) {
+        String sqlInsert = """
+        INSERT INTO "order" (reference, creation_date_time)
+        VALUES (?, ?)
+        RETURNING id_order;
+    """;
+
+        String sqlUpsert = """
+        INSERT INTO "order" (id_order, reference, creation_date_time)
+        VALUES (?, ?, ?)
+        ON CONFLICT (id_order) DO UPDATE 
+        SET reference = EXCLUDED.reference, creation_date_time = EXCLUDED.creation_date_time
+        RETURNING id_order;
+    """;
+
+        String sql = (order.getIdOrder() == null) ? sqlInsert : sqlUpsert;
+
+        try (Connection con = dbconnection.getConnection();
+             PreparedStatement pstmt = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            if (order.getIdOrder() == null) {
+                pstmt.setString(1, order.getReference());
+                pstmt.setTimestamp(2, Timestamp.from(order.getCreationDatetime()));
+            } else {
+                pstmt.setLong(1, order.getIdOrder());
+                pstmt.setString(2, order.getReference());
+                pstmt.setTimestamp(3, Timestamp.from(order.getCreationDatetime()));
+            }
+
+            pstmt.executeUpdate();
+
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    order.setIdOrder(rs.getLong("id_order"));
+                }
+            }
+            dishOrderDAO.saveAll(order.getDishOrders(), order.getIdOrder());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return order;
+    }
+
+    public List<Order> saveAll(List<Order> orders) {
+        List<Order> ordersSaved = new ArrayList<>();
+        for (Order order: orders) {
+            Order orderSaved = save(order);
+            ordersSaved.add(orderSaved);
+        }
+        return ordersSaved;
+    }
 }
