@@ -113,11 +113,11 @@ public class OrderDAO {
             }
             dishOrderDAO.saveAll(order.getDishOrders(), order.getIdOrder());
             orderStatusHitstoryDAO.saveAll(order.getStatusHistory(), order.getIdOrder());
-            if (order.getStatusHistory().isEmpty()) {
+           /* if (order.getStatusHistory().isEmpty()) {
                 orderStatusHitstoryDAO.saveAll( List.of(
                         new OrderStatusHistory(StatusOrder.CREATED)
                 ), order.getIdOrder());
-            }
+            }*/
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,7 +129,7 @@ public class OrderDAO {
         List<Order> ordersSaved = new ArrayList<>();
         for (Order order: orders) {
             Order orderSaved = save(order);
-            ordersSaved.add(orderSaved);
+            ordersSaved.add(findById(orderSaved.getIdOrder()).orElseThrow());
         }
         return ordersSaved;
     }

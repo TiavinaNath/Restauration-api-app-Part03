@@ -26,14 +26,15 @@ public class DishOrderStatusHitstoryDAO {
         this.dbConnection = new DbConnection();
     }
 
-    public List<DishOrderStatusHistory> getOrderStatusHistoryByOrderId(Long orderId) {
+    public List<DishOrderStatusHistory> getDishOrderStatusHistoryByDishOrderId(Long dishOrderId) {
         List<DishOrderStatusHistory> dishOrderStatusHistories = new ArrayList<>();
-        String sql = "SELECT * FROM order_status_history WHERE id_order = ?";
+        String sql = "SELECT * FROM dish_order_status_history WHERE id_dish_order = ?";
 
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
-            pstmt.setLong(1, orderId);
+
+            pstmt.setLong(1, dishOrderId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
@@ -56,11 +57,17 @@ public class DishOrderStatusHitstoryDAO {
         INSERT INTO dish_order_status_history (id_dish_order, status, creation_date_time)
         VALUES (?, ?, ?)
     """;
+        List<DishOrderStatusHistory> existingStatuses = getDishOrderStatusHistoryByDishOrderId(dishOrderId);
 
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             for (DishOrderStatusHistory status : statusHistories) {
+
+                if (existingStatuses.contains(status)) {
+                    continue;
+                }
+
                 pstmt.setLong(1, dishOrderId);
                 pstmt.setObject(2, status.getStatus(), OTHER);
                 pstmt.setTimestamp(3, Timestamp.from(status.getCreationDateTime()==null? Instant.now() : status.getCreationDateTime()));

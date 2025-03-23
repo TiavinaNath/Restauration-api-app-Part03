@@ -56,10 +56,17 @@ public class OrderStatusHitstoryDAO {
         VALUES (?, ?, ?)
     """;
 
+        List<OrderStatusHistory> existingStatuses = getOrderStatusHistoryByOrderId(orderId);
+
         try (Connection con = dbConnection.getConnection();
              PreparedStatement pstmt = con.prepareStatement(sql)) {
 
             for (OrderStatusHistory status : statusHistories) {
+
+                if (existingStatuses.contains(status)) {
+                    continue;
+                }
+
                 pstmt.setLong(1, orderId);
                 pstmt.setObject(2, status.getStatus(), OTHER);
                 pstmt.setTimestamp(3, Timestamp.from(status.getCreationDateTime()==null? Instant.now() : status.getCreationDateTime()));

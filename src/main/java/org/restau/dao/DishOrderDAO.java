@@ -35,7 +35,7 @@ public class DishOrderDAO {
                     dishOrder.setIdDishOrder(rs.getLong("id_dish_order"));
                     dishOrder.setDish(dishDAO.findById(rs.getLong("id_dish")).orElseThrow());
                     dishOrder.setQuantity(rs.getDouble("quantity"));
-                    dishOrder.setStatusHistory(dishOrderStatusHitstoryDAO.getOrderStatusHistoryByOrderId(rs.getLong("id_dish_order")));
+                    dishOrder.setStatusHistory(dishOrderStatusHitstoryDAO.getDishOrderStatusHistoryByDishOrderId(rs.getLong("id_dish_order")));
                 }
             }
         }
@@ -109,6 +109,64 @@ public class DishOrderDAO {
             return dishOrders;
         }
 
+    /*public void save(DishOrder dishOrder, Long orderId) throws SQLException {
+        String sqlInsert = """
+        INSERT INTO dish_order (id_order, id_dish, quantity)
+        VALUES (?, ?, ?)
+        returning id_dish_order
+    """;
+
+        String sqlUpsert = """
+        INSERT INTO "dish_order" (id_dish_order, id_order, id_dish, quantity)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (id_dish_order) DO UPDATE 
+        SET id_order = EXCLUDED.id_order, id_dish = EXCLUDED.id_dish, quantity = EXCLUDED.quantity
+        RETURNING id_dish_order;
+    """;
+
+            String sql = (dishOrder.getIdDishOrder() == null) ? sqlInsert : sqlUpsert;
+
+            try (Connection con = dbconnection.getConnection();
+                 PreparedStatement pstmt = con.prepareStatement(sql)) {
+
+                    if (dishOrder.getIdDishOrder()==null) {
+                        pstmt.setLong(1, orderId);
+                        pstmt.setLong(2, dishOrder.getDish().getIdDish());
+                        pstmt.setDouble(3, dishOrder.getQuantity());
+                    }
+                    else {
+                        pstmt.setLong(1, dishOrder.getIdDishOrder());
+                        pstmt.setLong(2, orderId);
+                        pstmt.setLong(3, dishOrder.getDish().getIdDish());
+                        pstmt.setDouble(4, dishOrder.getQuantity());
+                    }
+
+                    try(ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            dishOrder.setIdDishOrder(rs.getLong("id_dish_order"));
+                    }
+
+                    dishOrderStatusHitstoryDAO.saveAll(dishOrder.getStatusHistory(), dishOrder.getIdDishOrder());
+                    if (dishOrder.getStatusHistory().isEmpty()) {
+                        dishOrderStatusHitstoryDAO.saveAll( List.of(
+                                new DishOrderStatusHistory(StatusDishOrder.CREATED)
+                        ), dishOrder.getIdDishOrder());
+                    }
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void saveAll(List<DishOrder> dishOrders, Long orderId) throws SQLException {
+        for (DishOrder dishOrder : dishOrders) {
+            save(dishOrder, orderId);
+        }
+    }
+*/
+
     public void saveAll(List<DishOrder> dishOrders, Long orderId) {
         String sql = """
         INSERT INTO dish_order (id_dish, quantity, id_order)
@@ -131,17 +189,19 @@ public class DishOrderDAO {
 
                 }
                 dishOrderStatusHitstoryDAO.saveAll(dishOrder.getStatusHistory(), dishOrder.getIdDishOrder());
-                if (dishOrder.getStatusHistory().isEmpty()) {
+                /*if (dishOrder.getStatusHistory().isEmpty()) {
                     dishOrderStatusHitstoryDAO.saveAll( List.of(
                             new DishOrderStatusHistory(StatusDishOrder.CREATED)
                     ), dishOrder.getIdDishOrder());
-                }
+                }*/
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+
 
     public List<DishOrder> getDishOrdersByOrderId(Long orderId) {
         List<DishOrder> dishOrders = new ArrayList<>();
@@ -158,7 +218,7 @@ public class DishOrderDAO {
                     dishOrder.setIdDishOrder(rs.getLong("id_dish_order"));
                     dishOrder.setDish(dishDAO.findById(rs.getLong("id_dish")).orElseThrow());
                     dishOrder.setQuantity(rs.getDouble("quantity"));
-                    dishOrder.setStatusHistory(dishOrderStatusHitstoryDAO.getOrderStatusHistoryByOrderId(rs.getLong("id_dish_order")));
+                    dishOrder.setStatusHistory(dishOrderStatusHitstoryDAO.getDishOrderStatusHistoryByDishOrderId(rs.getLong("id_dish_order")));
                     dishOrders.add(dishOrder);
                 }
             }
