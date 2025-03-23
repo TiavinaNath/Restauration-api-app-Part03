@@ -19,4 +19,12 @@ public class DishOrderStatusHistory {
         this.status = status;
         this.creationDateTime = Instant.now();
     }
+    @Override
+    public String toString() {
+        return "DishOrderStatusHistory {\n" +
+                "  idDishOrderStatus=" + idDishOrderStatus + ",\n" +
+                "  status=" + status + ",\n" +
+                "  creationDateTime=" + creationDateTime + "\n" +
+                "}";
+    }
 }

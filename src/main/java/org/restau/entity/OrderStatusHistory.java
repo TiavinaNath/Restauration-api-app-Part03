@@ -18,4 +18,12 @@ public class OrderStatusHistory {
         this.status = status;
         this.creationDateTime = Instant.now();
     }
+    @Override
+    public String toString() {
+        return "OrderStatusHistory {\n" +
+                "  idOrderStatus=" + idOrderStatus + ",\n" +
+                "  status=" + status + ",\n" +
+                "  creationDateTime=" + creationDateTime + "\n" +
+                "}";
+    }
 }

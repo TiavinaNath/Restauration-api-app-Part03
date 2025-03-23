@@ -17,10 +17,11 @@ public class OrderDAOTest {
 
     @Test
     void save_order() {
-        Order order = new Order("ORDER-20250322-012");
+        Order order = new Order("Last Try");
         DishOrder dishOrder = new DishOrder(1L, dishDAO.findById(1L).orElseThrow(), 1.0);
         order.addDishOrders(List.of(dishOrder));
         order.addStatusHistory(List.of(new OrderStatusHistory(1L, StatusOrder.CREATED, Instant.now())));
+        System.out.println(order);
 
         List<Order> actual = subject.saveAll(List.of(order));
 

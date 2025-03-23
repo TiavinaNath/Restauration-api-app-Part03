@@ -2,7 +2,7 @@ package org.restau.dao;
 
 import lombok.AllArgsConstructor;
 import org.restau.db.DbConnection;
-import org.restau.entity.DishOrder;
+import org.restau.entity.*;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -109,11 +109,11 @@ public class DishOrderDAO {
             return dishOrders;
         }
 
-    public void saveAll(List<DishOrder> dishOrders, Long idOrder) {
+    public void saveAll(List<DishOrder> dishOrders, Long orderId) {
         String sql = """
         INSERT INTO dish_order (id_dish, quantity, id_order)
         VALUES (?, ?, ?)
-        RETURNING id_dish_order;
+        returning id_dish_order
     """;
 
         try (Connection con = dbconnection.getConnection();
@@ -122,12 +122,21 @@ public class DishOrderDAO {
             for (DishOrder dishOrder : dishOrders) {
                 pstmt.setLong(1, dishOrder.getDish().getIdDish());
                 pstmt.setDouble(2, dishOrder.getQuantity());
-                pstmt.setLong(3, idOrder);
+                pstmt.setLong(3, orderId);
 
-                pstmt.addBatch();
+                try(ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        dishOrder.setIdDishOrder(rs.getLong("id_dish_order"));
+                    }
+
+                }
+                dishOrderStatusHitstoryDAO.saveAll(dishOrder.getStatusHistory(), dishOrder.getIdDishOrder());
+                if (dishOrder.getStatusHistory().isEmpty()) {
+                    dishOrderStatusHitstoryDAO.saveAll( List.of(
+                            new DishOrderStatusHistory(StatusDishOrder.CREATED)
+                    ), dishOrder.getIdDishOrder());
+                }
             }
-
-            pstmt.executeBatch();
 
         } catch (Exception e) {
             e.printStackTrace();

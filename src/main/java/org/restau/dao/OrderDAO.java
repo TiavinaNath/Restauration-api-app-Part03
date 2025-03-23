@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import org.restau.db.DbConnection;
 import org.restau.entity.DishOrder;
 import org.restau.entity.Order;
+import org.restau.entity.OrderStatusHistory;
+import org.restau.entity.StatusOrder;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -100,6 +102,8 @@ public class OrderDAO {
                 pstmt.setTimestamp(3, Timestamp.from(order.getCreationDatetime()));
             }
 
+
+
             pstmt.executeUpdate();
 
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
@@ -108,6 +112,13 @@ public class OrderDAO {
                 }
             }
             dishOrderDAO.saveAll(order.getDishOrders(), order.getIdOrder());
+            orderStatusHitstoryDAO.saveAll(order.getStatusHistory(), order.getIdOrder());
+            if (order.getStatusHistory().isEmpty()) {
+                orderStatusHitstoryDAO.saveAll( List.of(
+                        new OrderStatusHistory(StatusOrder.CREATED)
+                ), order.getIdOrder());
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

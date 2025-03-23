@@ -4,6 +4,7 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @NoArgsConstructor
@@ -24,6 +25,21 @@ public class DishOrder {
         this.quantity = quantity;
         this.statusHistory = new ArrayList<>();
     }
+
+
+    @Override
+    public String toString() {
+        return "DishOrder {\n" +
+                "  idDishOrder=" + idDishOrder + ",\n" +
+                "  dish=" + dish + ",\n" +
+                "  quantity=" + quantity + ",\n" +
+                "  statusHistory=" + (statusHistory == null ? "[]" :
+                statusHistory.stream()
+                        .map(DishOrderStatusHistory::toString)
+                        .collect(Collectors.joining(",\n    ", "[\n    ", "\n  ]"))) + "\n" +
+                "}";
+    }
+
 
     public StatusDishOrder getActualStatus() {
         return statusHistory.isEmpty() ? StatusDishOrder.CREATED : statusHistory.get(statusHistory.size() - 1).getStatus();

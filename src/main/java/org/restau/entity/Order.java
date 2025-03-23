@@ -5,6 +5,7 @@ import org.restau.exception.InsufficientIngredientsException;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.restau.entity.StatusOrder.*;
 
@@ -33,6 +34,23 @@ public class Order {
         this.creationDatetime = Instant.now();
     }
 
+
+    @Override
+    public String toString() {
+        return "Order {\n" +
+                "  idOrder=" + idOrder + ",\n" +
+                "  reference='" + reference + "',\n" +
+                "  creationDatetime=" + creationDatetime + ",\n" +
+                "  dishOrders=" + dishOrders.stream()
+                .map(DishOrder::toString)
+                .collect(Collectors.joining(",\n    ", "[\n    ", "\n  ]")) + ",\n" +
+                "  statusHistory=" + statusHistory.stream()
+                .map(OrderStatusHistory::toString)
+                .collect(Collectors.joining(",\n    ", "[\n    ", "\n  ]")) + "\n" +
+                "}";
+    }
+
+
     public StatusOrder getActualStatus() {
         return statusHistory.stream()
                 .max(Comparator.comparing(OrderStatusHistory::getCreationDateTime))
@@ -54,7 +72,7 @@ public class Order {
         return this.statusHistory;
     }*/
 
-   /* public List<OrderStatusHistory> addStatusHistory(List<OrderStatusHistory> newStatus) {
+   public List<OrderStatusHistory> addStatusHistory(List<OrderStatusHistory> newStatus) {
         if (newStatus == null || newStatus.isEmpty()) {
             throw new IllegalArgumentException("Le statut ne peut pas être null ou vide.");
         }
@@ -94,8 +112,8 @@ public class Order {
         this.statusHistory.addAll(newStatus);
 
         return this.statusHistory;
-    }*/
-   public List<OrderStatusHistory> addStatusHistory(List<OrderStatusHistory> newStatuses) {
+    }
+   /*public List<OrderStatusHistory> addStatusHistory(List<OrderStatusHistory> newStatuses) {
        if (newStatuses == null || newStatuses.isEmpty()) {
            throw new IllegalArgumentException("La liste des nouveaux statuts ne peut pas être vide.");
        }
@@ -118,7 +136,7 @@ public class Order {
        }
 
        return statusHistory;
-   }
+   }*/
 
     public List<DishOrder> addDishOrders(List<DishOrder> dishOrders) {
         if(!CREATED.equals(getActualStatus())) {
